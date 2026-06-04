@@ -1,69 +1,53 @@
-# Simple Oscilloscope by Codex
+# 简易示波器与信号源
 
-An STM32G474-based simple oscilloscope and signal-source project with:
+这是一个基于 `STM32G474VETx` 的简易示波器项目，包含三部分：
 
-- on-board TFT waveform display
-- MCU-side internal signal source
-- ADC-based oscilloscope sampling path
-- PC host application
-- MCU simulator for offline host-side testing
+- 单片机固件：负责 TFT 显示、波形采样和内部测试波形生成
+- 上位机软件：用于连接设备或模拟器，查看参数与抓取波形
+- 下位机模拟器：在电脑上模拟单片机协议，便于脱离硬件联调
 
-This repository is intended for a small 1.8-inch ST7735 TFT module and an STM32G474VETx target generated from STM32CubeMX and built with Keil MDK-ARM.
+项目目标是在**不额外增加模拟前端电路**的前提下，利用现有资源完成一个可演示的简易信号源和示波器系统。
 
-## Project Overview
+![上位机软件界面截图](docs/images/host-app-screenshot.png)
 
-This project combines two usage paths:
+## 项目简介
 
-1. Real hardware path
-   The STM32 drives the TFT directly and displays a waveform on the screen.
-2. PC demo and development path
-   A Python host app connects to a Python MCU simulator so the protocol and UI can be tested without extra analog circuitry.
+当前工程支持两条使用路径：
 
-The firmware currently supports two logical modes:
+1. 实物演示路径  
+   程序烧录到 `STM32G474` 后，使用 `1.8` 寸 `ST7735` 屏幕横屏显示“更像示波器”的界面，包括顶部状态栏、右侧刻度、底部参数栏和中央波形区。
+2. 电脑联调路径  
+   运行 Python 上位机和 Python 下位机模拟器，在没有真实硬件输入信号的情况下，也能验证通信协议、参数调整和波形显示逻辑。
 
-- `SOURCE`
-  Internal waveform generation for display/demo.
-- `ADC`
-  Sample `PA0 / ADC1_IN1` and display the measured waveform.
+## 主要功能
 
-## Main Features
+- `SOURCE` 模式：单片机内部生成正弦波、三角波、方波、锯齿波，用于界面演示和功能验证
+- `ADC` 模式：采样 `PA0 / ADC1_IN1` 的输入电压，并在屏幕上绘制波形
+- 横屏示波器 UI：优化适配 `128 x 160` 的 `1.8` 寸屏幕，避免底部显示不完整
+- 上位机控制：支持读取配置、抓取波形、切换模式、修改频率、峰峰值、偏置等参数
+- 模拟器联调：不上板也能观察“示波器效果”和协议行为
 
-- STM32G474 firmware based on CubeMX project structure
-- Software SPI driver for ST7735 TFT on `PE7..PE12`
-- Oscilloscope-style UI with waveform area, status bar, scale labels, and footer
-- Internal sine / triangle / square / saw waveform source
-- ADC sampling display path for external analog input on `PA0`
-- Text command protocol for configuration and frame export
-- Python host application for control and waveform display
-- Python MCU simulator for offline integration testing
+## 目录结构
 
-## Repository Structure
+- `Core/`：主程序、示波器逻辑、TFT 驱动
+- `Drivers/`：STM32 HAL / CMSIS 驱动
+- `MDK-ARM/`：Keil 工程文件
+- `docs/`：上手文档、快速说明、硬件规划说明
+- `tools/`：上位机、下位机模拟器、协议辅助脚本
+- `SimpleScope_G474.ioc`：STM32CubeMX 工程文件
 
-- `Core/`
-  Main firmware source files and custom oscilloscope UI logic.
-- `Drivers/`
-  STM32 CMSIS and HAL driver sources.
-- `MDK-ARM/`
-  Keil project files.
-- `docs/`
-  Setup notes and quick-start documentation.
-- `tools/`
-  Python host application, MCU simulator, and protocol helpers.
-- `SimpleScope_G474.ioc`
-  STM32CubeMX project file.
+## 硬件连接
 
-## Hardware
+### 主控
 
-### MCU
+- `STM32G474VETx`
 
-- STM32G474VETx
+### 显示屏
 
-### Display
+- `1.8` 寸 `ST7735 TFT`
+- 当前界面目标方向：**横屏显示**
 
-- 1.8-inch ST7735 TFT
-- Effective project UI target: landscape display
-
-### TFT Wiring
+### TFT 引脚
 
 - `PE7`  -> `SCL`
 - `PE8`  -> `SDA`
@@ -72,118 +56,92 @@ The firmware currently supports two logical modes:
 - `PE11` -> `CS`
 - `PE12` -> `BLK`
 
-### Oscilloscope Input
+### 示波器输入
 
 - `PA0` -> `ADC1_IN1`
 
-### SWD
+### 下载调试
 
 - `PA13` -> `SWDIO`
 - `PA14` -> `SWCLK`
-- `GND` must be common
+- `GND` 需要共地
 
-### Safety
+### 安全说明
 
-Do not apply a voltage above `3.3V` or below `GND` to `PA0`.
+- `PA0` 输入电压必须在 `0V ~ 3.3V` 范围内
+- 不要将超过 `3.3V` 或低于 `GND` 的电压直接输入到 `PA0`
 
-## Firmware Build and Flash
+## 固件编译与烧录
 
-### 1. Open CubeMX
+### 1. 打开 CubeMX 工程
 
-Open:
+打开 `SimpleScope_G474.ioc`，确认以下配置：
 
-- `SimpleScope_G474.ioc`
-
-Confirm:
-
-- MCU is `STM32G474VETx`
+- MCU 为 `STM32G474VETx`
 - `PA0 = ADC1_IN1`
 - `PE7..PE12 = GPIO_Output`
-- `PA13/PA14 = Serial Wire`
+- `PA13 / PA14 = Serial Wire`
 
-Generate code for `MDK-ARM`.
+然后生成 `MDK-ARM` 工程代码。
 
-### 2. Open Keil
+### 2. 打开 Keil 工程
 
-Open:
-
-- `MDK-ARM/SimpleScope_G474.uvprojx`
-
-Make sure these custom files are included in the target:
+打开 `MDK-ARM/SimpleScope_G474.uvprojx`，确认以下文件已加入工程：
 
 - `Core/Src/tft_softspi.c`
 - `Core/Src/scope_ui.c`
 - `Core/Src/app_oscilloscope.c`
 
-### 3. Build and Flash
+### 3. 编译并烧录
 
-Build the Keil target and flash it through your SWD tool.
+使用 ST-Link 或其他 SWD 下载器，将程序烧录到开发板。
 
-## How to See the Oscilloscope Effect
+## 怎么看到“示波器效果”
 
-There are two different visual behaviors:
+### 方式一：直接看板子屏幕
 
-### `SOURCE` mode
+烧录成功后，TFT 会显示横屏示波器界面。
 
-The waveform on the TFT is generated internally by firmware.
-This is useful for UI testing and display verification.
+- 在 `SOURCE` 模式下，波形由固件内部生成，适合先检查 UI、刷新和参数变化
+- 在 `ADC` 模式下，波形来自 `PA0` 输入
 
-### `ADC` mode
+如果你在 `ADC` 模式下只接了固定直流电压，看到的大多会是一条平线；想看到明显变化的波形，需要给 `PA0` 输入一个随时间变化的安全信号。
 
-The waveform on the TFT comes from `PA0 / ADC1_IN1`.
-This is the actual oscilloscope path.
+### 方式二：运行上位机 + 模拟器
 
-Important:
+这条路径最适合先在电脑上确认“频率变了、峰峰值变了、波形跟着变化了”。
 
-- If `PA0` is connected to a fixed DC voltage, you will mostly see a flat line.
-- To see a changing oscilloscope waveform, `PA0` must receive a time-varying signal within `0V ~ 3.3V`.
+## 上位机与下位机模拟器使用方法
 
-## PC Host App and MCU Simulator
+### 1. 启动下位机模拟器
 
-The `tools/` directory contains a complete host-side demo path.
-
-### Files
-
-- `tools/scope_host_app.py`
-  PC host UI.
-- `tools/scope_mcu_simulator.py`
-  Lower-machine simulator over TCP.
-- `tools/simple_scope_protocol.py`
-  Shared protocol parser / formatter / waveform helper.
-- `tools/run_scope_host_app.cmd`
-  Start the host app.
-- `tools/run_scope_mcu_simulator.cmd`
-  Start the simulator.
-
-### Start the Simulator
-
-Run:
+运行：
 
 ```bat
 tools\run_scope_mcu_simulator.cmd
 ```
 
-Default address:
+默认监听地址：
 
-- Host: `127.0.0.1`
-- Port: `9000`
+- `127.0.0.1`
+- 端口 `9000`
 
-### Start the Host App
+### 2. 启动上位机软件
 
-Run:
+运行：
 
 ```bat
 tools\run_scope_host_app.cmd
 ```
 
-Then:
+然后在上位机中：
 
-1. Set `Host = 127.0.0.1`
-2. Set `Port = 9000`
-3. Click `Connect`
-4. Use `Apply` or `Fetch Frame`
+1. 将 `Host` 设置为 `127.0.0.1`
+2. 将 `Port` 设置为 `9000`
+3. 点击 `Connect`
+4. 使用 `Apply`、`Fetch Frame` 等按钮查看和刷新波形
 
-### Host-Side Supported Commands
+### 3. 上位机可用命令
 
 - `HELLO`
 - `GET CONFIG`
@@ -200,34 +158,30 @@ Then:
 - `SET VPP_MV <value>`
 - `SET OFFSET_MV <value>`
 
-## Recommended First Demo Flow
+## 推荐体验顺序
 
-1. Flash the firmware to the STM32 board.
-2. Confirm the TFT powers up and shows the oscilloscope UI.
-3. Use `SOURCE` mode first to verify display rendering.
-4. Feed a safe analog signal into `PA0` to verify `ADC` mode.
-5. Run the simulator and host app on PC for offline protocol testing.
+1. 先烧录固件，确认板载屏幕能正常横屏显示 UI
+2. 先使用 `SOURCE` 模式，观察内部波形是否正常刷新
+3. 再切换到 `ADC` 模式，给 `PA0` 输入安全测试信号
+4. 电脑端运行模拟器和上位机，验证参数调节与波形联动效果
 
-## Current Project Boundary
+## 当前限制
 
-The firmware already contains command parsing logic in:
+- 当前仓库已经具备本地 TFT 显示能力
+- 上位机已经可以完整控制 Python 模拟器
+- 真实单片机侧的远程串口控制链路还没有完全打通
 
-- `Core/Src/app_oscilloscope.c`
+也就是说，目前最稳定的演示方式是：
 
-However, the real board currently does not yet expose a completed UART transport path for those commands.
-That means:
+- 实物板直接看屏幕显示
+- 或在电脑上运行“上位机 + 模拟器”联调
 
-- the real MCU can display waveforms locally on the TFT
-- the host app can fully control the simulator
-- direct host-to-real-board remote control is not yet finished
+## 相关文档
 
-## Related Documents
+- [首次运行说明](docs/first_run_steps.md)
+- [上位机与模拟器快速上手](docs/host_simulator_quickstart.md)
+- [硬件规划说明](docs/oscilloscope_hardware_plan.md)
 
-- `docs/first_run_steps.md`
-- `docs/host_simulator_quickstart.md`
-- `docs/oscilloscope_hardware_plan.md`
+## 许可说明
 
-## License / Notes
-
-This repository contains STM32 HAL and CMSIS files from ST's generated project structure.
-Please follow the original upstream license terms included in the `Drivers/` directory when redistributing or reusing those components.
+仓库中包含 STM32CubeMX 生成的 HAL / CMSIS 相关文件。二次分发或复用时，请同时遵守 `Drivers/` 目录中对应的原始许可证要求。
