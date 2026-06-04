@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+
+# Keil / MDK user files
+*.uvguix.*
+*.uvguix
+*.uvoptx
+
+# Build logs
+*.log
+flash.log
+build.log
+
+# ARM / Keil build artifacts
+*.axf
+*.bin
+*.crf
+*.d
+*.dep
+*.elf
+*.hex
+*.htm
+*.lnp
+*.lst
+*.map
+*.o
+*.out
+
+# Keil output folders
+MDK-ARM/SimpleScope_G474/
+
+# OS / editor
+.DS_Store
+Thumbs.db

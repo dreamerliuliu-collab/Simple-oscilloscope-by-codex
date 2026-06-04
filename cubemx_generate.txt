@@ -1,0 +1,3 @@
+config load "C:\Users\lenovo\OneDrive\文档\简易示波器test1\SimpleScope_G474.ioc"
+generate code "C:\Users\lenovo\OneDrive\文档\简易示波器test1"
+exit
